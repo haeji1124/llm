@@ -1,6 +1,5 @@
 env/
-<<<<<<< HEAD
 .env
-=======
-.env
->>>>>>> cccd1da (3.0-3.1 강의 적용. model사용 및 predict시 message 전달하기(HumanMessage, AIMessage, SystemMessage))
+files/
+.cache/
+.streamlit
