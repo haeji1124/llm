@@ -24,12 +24,14 @@ st.set_page_config(
 
 st.title("QuizGPT")
 
-llm = ChatOpenAI(
-    temperature=0.1,
-    model="gpt-3.5-turbo-1106",
-    streaming=True,
-    callbacks=[StreamingStdOutCallbackHandler()],
-)
+def create_llm(api_key):
+    return ChatOpenAI(
+        temperature=0.1,
+        model="gpt-3.5-turbo-1106",
+        streaming=True,
+        callbacks=[StreamingStdOutCallbackHandler()],
+        openai_api_key=api_key,
+    )
 
 
 def format_docs(docs):
@@ -71,7 +73,6 @@ questions_prompt = ChatPromptTemplate.from_messages(
     ]
 )
 
-questions_chain = {"context": format_docs} | questions_prompt | llm
 
 formatting_prompt = ChatPromptTemplate.from_messages(
     [
@@ -198,7 +199,6 @@ formatting_prompt = ChatPromptTemplate.from_messages(
     ]
 )
 
-formatting_chain = formatting_prompt | llm
 
 
 @st.cache_data(show_spinner="Loading file...")
@@ -218,7 +218,9 @@ def split_file(file):
 
 
 @st.cache_data(show_spinner="Making quiz...")
-def run_quiz_chain(_docs, topic):
+def run_quiz_chain(_docs, topic, _llm):
+    questions_chain = {"context": format_docs} | questions_prompt | _llm
+    formatting_chain = formatting_prompt | _llm
     chain = {"context": questions_chain} | formatting_chain | output_parser
     return chain.invoke(_docs)
 
@@ -232,26 +234,29 @@ def wiki_search(term):
 
 with st.sidebar:
     docs = None
-    topic = None
-    choice = st.selectbox(
-        "Choose what you want to use.",
-        (
-            "File",
-            "Wikipedia Article",
-        ),
-    )
-    if choice == "File":
-        file = st.file_uploader(
-            "Upload a .docx , .txt or .pdf file",
-            type=["pdf", "txt", "docx"],
+    api_key = st.text_input("OpenAI API Key", type="password")
+    if api_key:
+        llm = create_llm(api_key)
+        
+        topic = None
+        choice = st.selectbox(
+            "Choose what you want to use.",
+            (
+                "File",
+                "Wikipedia Article",
+            ),
         )
-        if file:
-            docs = split_file(file)
-    else:
-        topic = st.text_input("Search Wikipedia...")
-        if topic:
-            docs = wiki_search(topic)
-
+        if choice == "File":
+            file = st.file_uploader(
+                "Upload a .docx , .txt or .pdf file",
+                type=["pdf", "txt", "docx"],
+            )
+            if file:
+                docs = split_file(file)
+        else:
+            topic = st.text_input("Search Wikipedia...")
+            if topic:
+                docs = wiki_search(topic)
 
 if not docs:
     st.markdown(
@@ -263,10 +268,10 @@ if not docs:
     Get started by uploading a file or searching on Wikipedia in the sidebar.
     """
     )
-else:
-    response = run_quiz_chain(docs, topic if topic else file.name)
+elif api_key:  # API 키가 제공된 경우에만 퀴즈 생성
+    response = run_quiz_chain(docs, topic if topic else file.name, llm)
     with st.form("questions_form"):
-        st.write(response)
+        # st.write(response)
         for question in response["questions"]:
             st.write(question["question"])
             value = st.radio(
@@ -279,3 +284,5 @@ else:
             elif value is not None:
                 st.error("Wrong!")
         button = st.form_submit_button()
+else:
+    st.warning("Please enter your OpenAI API key in the sidebar to generate the quiz.")
