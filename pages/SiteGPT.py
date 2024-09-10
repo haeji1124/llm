@@ -260,9 +260,9 @@ if key:
     # else:
     retriever = load_website(url, key)
 
-    send_message("반갑습니다! 질문해 주세요. ^^", "ai", save=False)
+    send_message("Hi", "ai", save=False)
     paint_history()
-    message = st.chat_input("문서에 대해 질문해 주세요.")
+    message = st.chat_input("please ask about document")
     if message:
         send_message(message, "human")
         chain = (
