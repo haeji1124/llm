@@ -1,0 +1,452 @@
+	----- Source: https://www.wired.com/story/xz-backdoor-everything-you-need-to-know/ -----
+
+
+The XZ Backdoor: Everything You Need to Know | WIREDSkip to main
+contentSecurityPoliticsGearThe Big
+StoryBusinessScienceCultureIdeasMerchPodcastsVideoNewslettersMagazineTravelSteven
+Levy's Plaintext ColumnWIRED Classics from the ArchiveEventsWIRED
+InsiderWIRED ConsultingJobsCouponsDan Goodin, Ars TechnicaSecurityApr
+2, 2024 4:00 AMThe XZ Backdoor: Everything You Need to KnowDetails are
+starting to emerge about a stunning supply chain attack that sent the
+open source software community reeling.Illustration: da-kuk/Getty
+ImagesSave this storySaveSave this storySaveIf you buy something using
+links in our stories, we may earn a commission. This helps support our
+journalism. Learn more. Please also consider subscribing to WIREDOn
+Friday, a lone Microsoft developer rocked the world when he revealed a
+backdoor had been intentionally planted in XZ Utils, an open source
+data compression utility available on almost all installations of
+Linux and other Unix-like operating systems. The person or people
+behind this project likely spent years on it. They were likely very
+close to seeing the backdoor update merged into Debian and Red Hat,
+the two biggest distributions of Linux, when an eagle-eyed software
+developer spotted something fishy."This might be the best executed
+supply chain attack we've seen described in the open, and it's a
+nightmare scenario: malicious, competent, authorized upstream in a
+widely used library," software and cryptography engineer Filippo
+Valsorda said of the effort, which came frightfully close to
+succeeding.Researchers have spent the weekend gathering clues. Here's
+what we know so far.What Is XZ Utils?XZ Utils is nearly ubiquitous in
+Linux. It provides lossless data compression on virtually all Unix-
+like operating systems, including Linux. XZ Utils provides critical
+functions for compressing and decompressing data during all kinds of
+operations. XZ Utils also supports the legacy .lzma format, making
+this component even more crucial.What Happened?Andres Freund, a
+developer and engineer working on Microsoft’s PostgreSQL offerings,
+was recently troubleshooting performance problems a Debian system was
+experiencing with SSH, the most widely used protocol for remotely
+logging in to devices over the Internet. Specifically, SSH logins were
+consuming too many CPU cycles and were generating errors with
+valgrind, a utility for monitoring computer memory.Through sheer luck
+and Freund’s careful eye, he eventually discovered the problems were
+the result of updates that had been made to XZ Utils. On Friday,
+Freund took to the Open Source Security List to disclose the updates
+were the result of someone intentionally planting a backdoor in the
+compression software.It's hard to overstate the complexity of the
+social engineering and the inner workings of the backdoor. Thomas
+Roccia, a researcher at Microsoft, published a graphic on Mastodon
+that helps visualize the sprawling extent of the nearly successful
+endeavor to spread a backdoor with a reach that would have dwarfed the
+SolarWinds event from 2020.What Does the Backdoor Do?Malicious code
+added to xz Utils versions 5.6.0 and 5.6.1 modified the way the
+software functions. The backdoor manipulated sshd, the executable file
+used to make remote SSH connections. Anyone in possession of a
+predetermined encryption key could stash any code of their choice in
+an SSH login certificate, upload it, and execute it on the backdoored
+device. No one has actually seen code uploaded, so it's not known what
+code the attacker planned to run. In theory, the code could allow for
+just about anything, including stealing encryption keys or installing
+malware.Wait, How Can a Compression Utility Manipulate a Process as
+Security-Sensitive as SSH?Any library can tamper with the inner
+workings of any executable it is linked against. Often, the developer
+of the executable will establish a link to a library that's needed for
+it to work properly. OpenSSH, the most popular sshd implementation,
+doesn’t link the liblzma library, but Debian and many other Linux
+distributions add a patch to link sshd to systemd, a program that
+loads a variety of services during the system bootup. Systemd, in
+turn, links to liblzma, and this allows XZ Utils to exert control over
+sshd.How Did This Backdoor Come to Be?It would appear that this
+backdoor was years in the making. In 2021, someone with the username
+JiaT75 made their first known commit to an open source project. In
+retrospect, the change to the libarchive project is suspicious,
+because it replaced the safe_fprint funcion with a variant that has
+long been recognized as less secure. No one noticed at the time.Ars
+TechnicaThis story originally appeared on Ars Technica, a trusted
+source for technology news, tech policy analysis, reviews, and more.
+Ars is owned by WIRED's parent company, Condé Nast.The following year,
+JiaT75 submitted a patch over the XZ Utils mailing list, and, almost
+immediately, a never-before-seen participant named Jigar Kumar joined
+the discussion and argued that Lasse Collin, the longtime maintainer
+of XZ Utils, hadn’t been updating the software often or fast enough.
+Kumar, with the support of Dennis Ens and several other people who had
+never had a presence on the list, pressured Collin to bring on an
+additional developer to maintain the project.In January 2023, JiaT75
+made their first commit to XZ Utils. In the months following, JiaT75,
+who used the name Jia Tan, became increasingly involved in XZ Utils
+affairs. For instance, Tan replaced Collins’ contact information with
+their own on oss-fuzz, a project that scans open source software for
+vulnerabilities that can be exploited. Tan also requested that oss-
+fuzz disable the ifunc function during testing, a change that
+prevented it from detecting the malicious changes Tan would soon make
+to XZ Utils.In February of this year, Tan issued commits for versions
+5.6.0 and 5.6.1 of XZ Utils. The updates implemented the backdoor. In
+the following weeks, Tan or others appealed to developers of Ubuntu,
+Red Hat, and Debian to merge the updates into their OSes. Eventually,
+one of the two updates made its way into several releases, according
+to security firm Tenable. There’s more about Tan and the timeline
+here.Can You Say More About What This Backdoor Does?In a nutshell, it
+allows someone with the right private key to hijack sshd, the
+executable file responsible for making SSH connections, and from there
+to execute malicious commands. The backdoor is implemented through a
+five-stage loader that uses a series of simple but clever techniques
+to hide itself. It also provides the means for new payloads to be
+delivered without major changes being required.Multiple people who
+have reverse-engineered the updates have much more to say about the
+backdoor. Developer Sam James provided an overview here.Most
+PopularGearThe Best Hearing Aids We’ve Personally Tested and Vetted
+With an ExpertBy Christopher NullGearThe Best Wireless Earbuds for
+EveryoneBy Parker HallGearHow Do You Solve a Problem Like Polestar?By
+Carlton ReidCultureThe 21 Best Movies on Amazon Prime Right NowBy Matt
+KamenIn an online interview, developer and reverse engineer HD Moore
+confirmed the Sam James suspicion that the backdoor targeted either
+Debian or Red Hat distributions.“The attack was sneaky in that it only
+did the final steps of the backdoor if you were building the library
+on amd64 (intel x86 64-bit) and were building a Debian or a RPM
+package (instead of using it for a local installation),” he
+wrote.Paraphrasing observations from researchers who collectively
+spent the weekend analyzing the malicious updates, he continued:When
+verifying an SSH public key, if the public key matches a certain
+fingerprint function, the key contents are decrypted using a pre-
+shared key before the public key is actually verified. The decrypted
+contents are then passed directly to system.If the fingerprint doesn't
+match or the decrypted contents don't match a certain format, it falls
+back to regular key verification and no-one's the wiser.The backdoor
+is super sneaky. It uses a little-known feature of the glibc to hook a
+function. It only triggers when the backdoored xz library gets loaded
+by a /usr/bin/sshd process on one of the affected distributions. There
+may be many other backdoors, but the one everyone is talking about
+uses the function indirection stuff to add the hook. The payload was
+encoded into fake xz test files and runs as a shellcode effectively,
+changing the SSH RSA key verification code so that a magic public key
+(sent during normal authentication) let the attacker gain
+access​​Their grand scheme was:sneakily backdoor the release tarballs,
+but not the source codeuse sockpuppet accounts to convince the various
+Linux distributions to pull the latest version and package itonce
+those distributions shipped it, they could take over any downstream
+user/company system/etcResearchers from networking firm Akamai also
+explain well how the backdoor works here.What More Do We Know About
+Jia Tan?At the moment, extremely little, especially for someone
+entrusted to steward a piece of software as ubiquitous and as
+sensitive as XZ Utils. This developer persona has touched dozens of
+other pieces of open source software in the past few years. At the
+moment, it’s unknown if there was ever a real-world person behind this
+username or if Jia Tan is a completely fabricated
+individual.Additional technical analysis is available from the above
+Bluesky thread from Valsorda, researcher Kevin Beaumont, and Freund’s
+Friday disclosure.Is There a CVE Tracking Designation?Yes, it's
+CVE-2024-3094.How Do I Know If the Backdoor Is Present on My
+Device?There are several ways. One is this page from security firm
+Binarly. The tool detects implementation of IFUNC and is based on
+behavioral analysis. It can automatically detect invariants in the
+event a similar backdoor is implanted elsewhere.There's also a project
+called xzbot. It provides the following:honeypot: fake vulnerable
+server to detect exploit attemptsed448 patch: patch liblzma.so to use
+our own ED448 public keybackdoor format: format of the backdoor
+payloadbackdoor demo: cli to trigger the RCE assuming knowledge of the
+ED448 private keyThis story originally appeared on Ars
+Technica.Updated 4/2/2024, 1:23 pm ET to include additional
+details.You Might Also Like …Politics Lab: Get the newsletter and
+listen to the podcastWhat happens when you give people free moneyNot
+everyone loses weight on OzempicThe Pentagon wants to spend $141
+billion on a doomsday machineEvent: Join us for the Energy Tech Summit
+on October 10 in BerlinDan Goodin is IT Security Editor at Ars
+TechnicaXTopicsArs Technicasecurityopen sourcehackingmalwareLinuxRead
+MoreTherapy Sessions Exposed by Mental Health Care Firm’s Unsecured
+DatabaseVideo and audio of therapy sessions, transcripts, and other
+patient records were accidentally exposed in a publicly accessible
+database operated by the virtual medical company Confidant Health.Matt
+BurgessHackers Threaten to Leak Planned Parenthood DataPlus:
+Kaspersky’s US business sold, Nigerian sextortion scammers jailed, and
+Europe’s controversial encryption plans return.Matt BurgessHarmful
+'Nudify' Websites Used Google, Apple, and Discord Sign-On
+SystemsSingle sign-on systems from several Big Tech companies are
+being incorporated into deepfake generators, WIRED found. Discord and
+Apple have started to terminate some developers’ accounts.Matt Burgess	----- Source: https://www.wired.com/story/jia-tan-xz-backdoor/ -----
+
+
+The Mystery of ‘Jia Tan,’ the XZ Backdoor Mastermind | WIREDSkip to
+main contentSecurityPoliticsGearThe Big
+StoryBusinessScienceCultureIdeasMerchPodcastsVideoNewslettersMagazineTravelSteven
+Levy's Plaintext ColumnWIRED Classics from the ArchiveEventsWIRED
+InsiderWIRED ConsultingJobsCouponsBy Andy Greenberg and Matt
+BurgessSecurityApr 3, 2024 9:54 AMThe Mystery of ‘Jia Tan,’ the XZ
+Backdoor MastermindThe thwarted XZ Utils supply chain attack was years
+in the making. Now, clues suggest nation-state hackers were behind the
+persona that inserted the malicious code.Photograph: Henrik
+Sorensen/Getty ImagesSave this storySaveSave this storySaveThe scourge
+of software supply chain attacks—an increasingly common hacking
+technique that hides malicious code in a widely used legitimate
+program—can take many forms. Hackers can penetrate an update server to
+seed out their malware, or even break into the network where the
+software was developed to corrupt it at the source. Or, in the case of
+one particularly insidious software supply chain attacker known as Jia
+Tan, they can spend two years politely and enthusiastically
+volunteering to help.The XZ Backdoor: Everything You Need to KnowBy
+Dan Goodin, Ars TechnicaOver the weekend, the cybersecurity and open
+source software community was shocked by the news that a relatively
+new, experimental version of XZ Utils—a compression utility integrated
+into many popular distributions of Linux—contained a backdoor that
+would have allowed hackers in possession of a specific private key to
+connect to the backdoored system and run their own commands as an
+administrator. Only some chance detective work carried out by a lone
+Microsoft engineer, Andres Freund—who’d detected a strange delay in
+how the remote connection protocol SSH was running in a version of the
+Linux variant Debian—caught the spy trick before it ended up in many
+millions of systems worldwide.That XZ Utils backdoor, it’s now clear,
+was inserted by none other than the lead open source steward of XZ
+Utils, a developer who went by the name Jia Tan. In the wake of the
+backdoor's discovery, a mystery percolating through the tech world
+remains: Who is Jia Tan, and who did he, or she—or very likely
+they—truly work for?Jia Tan exploited open source software’s
+crowdsourced approach to coding whereby anyone can suggest changes to
+a program on code repositories like GitHub, where the changes are
+reviewed by other coders before they’re integrated into the software.
+Peeling back Jia Tan’s documented history in the open source
+programming world reveals that they first appeared in November 2021
+with the GitHub username JiaT75, then made contributions to other open
+source projects using the name Jia Tan, or sometimes Jia Cheong Tan,
+for more than a year before beginning to submit changes to XZ Utils.By
+January 2023, Jia Tan’s code was being integrated into XZ Utils. Over
+the next year, they would largely take control of the project from its
+original maintainer, Lasse Collin, a change driven in part by nagging
+emails sent to Collin by a handful users complaining about slow
+updates. (Whether those users were unwitting accomplices, or actually
+working with Jia Tan to persuade Collin to relinquish control, remains
+unclear. None of the users replied to requests for comment from
+WIRED.) Finally, Jia Tan added their stealthy backdoor to a version of
+XZ Utils in February of this year.That inhumanly patient approach,
+along with the technical features and sophistication of the backdoor
+itself, has led many in the cybersecurity world to believe that Jia
+Tan must, in fact, be a handle operated by state-sponsored hackers—and
+very good ones. “This multiyear operation was very cunning, and the
+implanted backdoor is incredibly deceptive,” says Costin Raiu, who
+until last year served as the most senior researcher and head of the
+global research and analysis team at Russian cybersecurity firm
+Kaspersky. “I’d say this is a nation-state-backed group, one with
+long-term goals in mind that affords to invest into multiyear
+infiltration of open source projects.”Most PopularGearThe Best Hearing
+Aids We’ve Personally Tested and Vetted With an ExpertBy Christopher
+NullGearThe Best Wireless Earbuds for EveryoneBy Parker HallGearHow Do
+You Solve a Problem Like Polestar?By Carlton ReidSecurityWhat You Need
+to Know About Grok AI and Your PrivacyBy Kate O'FlahertyAs for which
+nation, Raiu names the usual suspects: China, Russia, and North Korea.
+He says it’s still too early to know the true culprit. “One thing is
+for sure clear,” he adds. “This was more cunning than all previous
+software supply chain attacks I’ve seen.”A Very Private, Very Busy
+ProgrammerAs scrutiny around Jia Tan has mounted since the revelation
+of the XZ Utils backdoor last Friday, researchers have noted that the
+persona has remarkably good operational security. Independent security
+reporter Brian Krebs writes that he could find “zero trace” of Jia
+Tan’s email address outside of the messages they sent to fellow open
+source contributors, even after scouring breached databases. Jia Tan
+also appears to have routed all their communications through a VPN
+with a Singaporean IP address.The lack of any other online presence
+linked to Jia Tan points toward the account being a “single-purpose
+invented persona” and indicates how much sophistication, patience, and
+thought was put into developing the backdoor, says Will Thomas, an
+instructor at the SANS Institute, a cybersecurity training firm. The
+Jia Tan persona has vanished since the backdoor was discovered, and
+emails sent by WIRED to a Gmail address linked to it have gone
+unanswered. Jia Tan’s GitHub account has been suspended, a company
+spokesperson tells WIRED.In fact, the only real footprints Jia Tan
+appears to have left behind were their contributions to the open
+source development community, where they were a prolific contributor:
+Disturbingly, Jia Tan’s first code change was to the “libarchive”
+compression library, another very widely used open source component.
+That first change swapped one function with a less secure alternative,
+potentially attempting another malicious code change, notes developer
+Evan Boehs in his detailed Jia Tan timeline—though the problem has
+since been fixed.In total, Jia Tan made 6,000 code changes to at least
+seven projects between 2021 and February 2024, according to Michael
+Scott, the cofounder of the cybersecurity firm NetRise who previously
+worked in the Marine Corps cyberwarfare group under US Cyber Command.
+Determining all the branching effects of those changes is nearly
+impossible, Scott says. Because those changes, known as “commits,” are
+often batched into collections in a process known as “squashing
+commits,” it’s not always apparent which exact changes were made by
+Jia Tan. And the difficulty of tracing which of the many versions of a
+library like libarchive ended up in which software adds yet another
+layer of obfuscation. “It’s going to be a bit of a mess pulling on
+this thread and trying to figure out where all these things ended up,”
+Scott says.Scott notes that, throughout this time, Jia Tan was also
+emailing with other contributors, writing in a “very concise, very
+dry,” but not unfriendly tone that Scott compares to the output of
+ChatGPT. “Nice job to both of you for getting this feature as far as
+it is already,” Jia Tan wrote at one point. Or, at another: “Let me
+know your thoughts on these patches when you have a chance :)” Jordi
+Mas, a developer who contributed to XZ Utils and had emailed
+“feedback” from Jia Tan, says in retrospect that the account went to
+extra levels to build trust in the persona.Most PopularGearThe Best
+Hearing Aids We’ve Personally Tested and Vetted With an ExpertBy
+Christopher NullGearThe Best Wireless Earbuds for EveryoneBy Parker
+HallGearHow Do You Solve a Problem Like Polestar?By Carlton
+ReidSecurityWhat You Need to Know About Grok AI and Your PrivacyBy
+Kate O'FlahertyUltimately, Scott argues that those three years of code
+changes and polite emails were likely not spent sabotaging multiple
+software projects, but rather building up a history of credibility in
+preparation for the sabotage of XZ Utils specifically—and potentially
+other projects in the future. “He just never got to that step because
+we got lucky and found his stuff,” says Scott. “So that’s burned now,
+and he’s gonna have to go back to square one.”Technical Ticks and Time
+ZonesDespite Jia Tan’s persona as a single individual, their yearslong
+preparation is a hallmark of a well-organized state-sponsored hacker
+group, argues Raiu, the former Kaspersky lead researcher. So too are
+the technical hallmarks of the XZ Utils malicious code that Jia Tan
+added. Raiu notes that, at a glance, the code truly looks like a
+compression tool. “It’s written in a very subversive manner,” he says.
+It’s also a “passive” backdoor, Raiu says, so it wouldn’t reach out to
+a command-and-control server that might help identify the backdoor’s
+operator. Instead, it waits for the operator to connect to the target
+machine via SSH and authenticate with a private key—one generated with
+a particularly strong cryptographic function known as ED448.The
+backdoor’s careful design could be the work of US hackers, Raiu notes,
+but he suggests that’s unlikely, since the US wouldn’t typically
+sabotage open source projects—and if it did, the National Security
+Agency would probably use a quantum-resistant cryptographic function,
+which ED448 is not. That leaves non-US groups with a history of supply
+chain attacks, Raiu suggests, like China’s APT41, North Korea’s
+Lazarus Group, and Russia’s APT29.At a glance, Jia Tan certainly looks
+East Asian—or is meant to. The time zone of Jia Tan’s commits are
+UTC+8: That’s China’s time zone, and only an hour off from North
+Korea’s. However, an analysis by two researchers, Rhea Karty and Simon
+Henniger, suggests that Jia Tan may have simply changed the time zone
+of their computer to UTC+8 before every commit. In fact, several
+commits were made with a computer set to an Eastern European or Middle
+Eastern time zone instead, perhaps when Jia Tan forgot to make the
+change.“Another indication that they are not from China is the fact
+that they worked on notable Chinese holidays,” say Karty and Henniger,
+students at Dartmouth College and the Technical University of Munich,
+respectively. They note that Jia Tan also didn't submit new code on
+Christmas or New Year's. Boehs, the developer, adds that much of the
+work starts at 9 am and ends at 5 pm for Eastern European or Middle
+Eastern time zones. “The time range of commits suggests this was not
+some project that they did outside of work,” Boehs says.Though that
+leaves countries like Iran and Israel as possibilities, the majority
+of clues lead back to Russia, and specifically Russia’s APT29 hacking
+group, argues Dave Aitel, a former NSA hacker and founder of the
+cybersecurity firm Immunity. Aitel points out that APT29—widely
+believed to work for Russia’s foreign intelligence agency, known as
+the SVR—has a reputation for technical care of a kind that few other
+hacker groups show. APT29 also carried out the Solar Winds compromise,
+perhaps the most deftly coordinated and effective software supply
+chain attack in history. That operation matches the style of the XZ
+Utils backdoor far more than the cruder supply chain attacks of APT41
+or Lazarus, by comparison.“It could very well be someone else,” says
+Aitel. “But I mean, if you’re looking for the most sophisticated
+supply chain attacks on the planet, that’s going to be our dear
+friends at the SVR.”Security researchers agree, at least, that it’s
+unlikely that Jia Tan is a real person, or even one person working
+alone. Instead, it seems clear that the persona was the online
+embodiment of a new tactic from a well-organized group—a tactic that
+nearly worked. That means we should expect to see Jia Tan return by
+other names: seemingly polite and enthusiastic contributors to open
+source projects, hiding a government’s secret intentions in their code
+commits.Updated 4/3/2024 at 12:30 pm ET to note the possibility of
+Israeli or Iranian involvement.You Might Also Like …Politics Lab: Get
+the newsletter and listen to the podcastWhat happens when you give
+people free moneyNot everyone loses weight on OzempicThe Pentagon
+wants to spend $141 billion on a doomsday machineEvent: Join us for
+the Energy Tech Summit on October 10 in BerlinAndy Greenberg is a
+senior writer for WIRED covering hacking, cybersecurity, and
+surveillance. He’s the author of the new book Tracers in the Dark: The
+Global Hunt for the Crime Lords of Cryptocurrency. His last book was
+*Sandworm: A New Era of Cyberwar and the Hunt for the Kremlin's
+Most... Read moreSenior WriterXMatt Burgess is a senior writer at
+WIRED focused on information security, privacy, and data regulation in
+Europe. He graduated from the University of Sheffield with a degree in
+journalism and now lives in London. Send tips to
+Matt_Burgess@wired.com.Senior
+writerXTopicscybersecurityvulnerabilitiesLinuxopen
+sourcehackerscyberattacksRead MoreHackers Threaten to Leak Planned
+Parenthood DataPlus: Kaspersky’s US business sold, Nigerian sextortion
+scammers jailed, and Europe’s controversial encryption plans
+return.Matt BurgessWhat You Need to Know About Grok AI and Your
+PrivacyxAI's generative AI tool, Grok AI, is unhinged compared to its
+competitors. It's also scooping up a ton of data people post on X.
+Here's how to keep your posts out of Grok—and why you should.Kate
+O'FlahertyA Single Iranian Hacker Group Targeted Both Presidential
+Campaigns, Google SaysAPT42, which is believed to work for Iran’s
+Revolutionary Guard Corps, targeted about a dozen people associated
+with both Trump’s and Biden’s campaigns this spring, according to
+Google’s Threat Analysis Group.Andy GreenbergThe Slow-Burn Nightmare
+of the National Public Data BreachSocial Security numbers, physical
+addresses, and more—all available online. After months of confusion,
+leaked information from a background-check firm underscores the long-
+term risks of data breaches.Lily Hay NewmanPowerful Spyware Exploits
+Enable a New String of ‘Watering Hole’ AttacksSuspected Russian
+hackers have compromised a series of websites to utilize sophisticated
+spyware exploits that are eerily similar to those created by NSO Group
+and Intellexa.Lily Hay NewmanThe US Government Wants You—Yes, You—to
+Hunt Down Generative AI FlawsThe AI ethics nonprofit Humane
+Intelligence and the US National Institute of Standards and Technology
+are launching a series of contests to get more people probing for
+problems in generative AI systems.Lily Hay NewmanTaylor Swift Concert
+Terror Plot Was Thwarted by Key CIA TipPlus: China-linked hackers
+infiltrate US internet providers, authorities crack down on a major
+piracy operation, and a ransomware gang claims attacks during the
+Paris Olympics.Lily Hay NewmanThe US Navy Is Going All In on
+StarlinkThe Navy is testing out the Elon Musk–owned satellite
+constellation to provide high-speed internet access to sailors at sea.
+It’s part of a bigger project that’s about more than just getting
+online.Jared Keller
+
+	----- Source: https://www.kali.org/blog/about-the-xz-backdoor/ -----
+
+
+All about the xz-utils backdoor | Kali Linux Blog LIGHT DARK Friday,
+29 March 2024All about the xz-utils backdoorAs of 5:00 pm ET on March
+29, 2024 the following information is accurate. Should there be
+updates to this situation, they will be edited onto this blog post.The
+xz-utils package, starting from versions 5.6.0 to 5.6.1, was found to
+contain a backdoor (CVE-2024-3094). This backdoor could potentially
+allow a malicious actor to compromise sshd authentication, granting
+unauthorized access to the entire system remotely.With a library this
+widely used, the severity of this vulnerability poses a threat to the
+entire Linux ecosystem. Luckily, this issue was caught quickly so the
+impact was significantly less than it could have been. It has already
+been patched in Debian, and therefore, Kali Linux.The impact of this
+vulnerability affected Kali between March 26th to March 29th, during
+which time xz-utils 5.6.0-0.2 was available. If you updated your Kali
+installation on or after March 26th, but before March 29th, it is
+crucial to apply the latest updates today to address this issue.
+However, if you did not update your Kali installation before the 26th,
+you are not affected by this backdoor vulnerability.Should you wish to
+check if you have the vulnerable version installed, we can perform the
+following command:kali@kali:~$ apt-cache policy liblzma5   liblzma5:
+ Installed: 5.4.5-0.3    Candidate: 5.6.1+really5.4.5-1    Version
+table:       5.6.1+really5.4.5-1 500          500
+http://kali.download/kali kali-rolling/main amd64 Packages   ***
+5.4.5-0.3 100          100 /var/lib/dpkg/status If we see the version
+5.6.0-0.2 next to Installed: then we must upgrade to the latest
+version, 5.6.1+really5.4.5-1. We can do this with the following
+commands:kali@kali:~$ sudo apt update && sudo apt install -y --only-
+upgrade liblzma5 ... kali@kali:~$ More information can be found at
+Help Net Security for a summarized post on the details of the
+vulnerability, Openwall for the initial disclosure, and NIST’s NVD
+entry for this vulnerability.
+
+	----- Source: https://cybernews.com/editorial/xz-linux-backdoor-explained/ -----
+
+
+        Attention Required! | Cloudflare               Please enable
+cookies.   Sorry, you have been blocked You are unable to access
+cybernews.com            Why have I been blocked? This website is
+using a security service to protect itself from online attacks. The
+action you just performed triggered the security solution. There are
+several actions that could trigger this block including submitting a
+certain word or phrase, a SQL command or malformed data.   What can I
+do to resolve this? You can email the site owner to let them know you
+were blocked. Please include what you were doing when this page came
+up and the Cloudflare Ray ID found at the bottom of this page.
+Cloudflare Ray ID: 8c22aec04962d1f1 •        Your IP:       Click to
+reveal 219.240.4.144 •  Performance & security by Cloudflare
+
